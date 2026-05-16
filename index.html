@@ -1622,58 +1622,66 @@ function renderCharts(records) {
   };
 
   // ── Daily Gap Trend Chart
+  // ── Daily Trend (Relapse Gap)
   const lineData = sorted.slice(-30);
-
+  
   const lineLabels = [];
   const lineVals = [];
-
-  for (let i = 1; i < lineData.length; i++) {
-    const prevDate = new Date(lineData[i - 1].date);
-    const currDate = new Date(lineData[i].date);
-
-    const diffDays = Math.round(
-      (currDate - prevDate) / (1000 * 60 * 60 * 24)
-    );
-
-    lineLabels.push(lineData[i].date.slice(5));
-    lineVals.push(diffDays);
+  
+  let lastFapDate = null;
+  
+  for (let i = 0; i < lineData.length; i++) {
+  const rec = lineData[i];
+  
+  lineLabels.push(rec.date.slice(5));
+  
+  if (rec.count > 0) {
+  
+  if (lastFapDate) {
+  const prev = new Date(lastFapDate);
+  const curr = new Date(rec.date);
+  
+  const diffDays = Math.round(
+  (curr - prev) / (1000 * 60 * 60 * 24)
+  );
+  
+  lineVals.push(diffDays);
+  } else {
+  lineVals.push(0);
   }
-
+  
+  lastFapDate = rec.date;
+  
+  } else {
+  lineVals.push(0);
+  }
+  }
+  
   if (charts.line) charts.line.destroy();
-
+  
   charts.line = new Chart(document.getElementById('chart-line'), {
-    type: 'line',
-    data: {
-      labels: lineLabels,
-      datasets: [{
-        label: 'Days Gap',
-        data: lineVals,
-        borderColor: c.accent,
-        backgroundColor: hexToRgba(c.accent, 0.15),
-        borderWidth: 2.5,
-        pointRadius: 4,
-        pointBackgroundColor: c.accent,
-        fill: true,
-        tension: 0.4,
-      }]
-    },
-    options: {
-      ...baseOptions,
-      scales: {
-        ...baseOptions.scales,
-        y: {
-          ...baseOptions.scales.y,
-          title: {
-            display: true,
-            text: 'Days Gap'
-          }
-        }
-      },
-      animation: {
-        duration: 800,
-        easing: 'easeInOutQuart'
-      }
-    }
+  type: 'line',
+  data: {
+  labels: lineLabels,
+  datasets: [{
+  label: 'Relapse Gap',
+  data: lineVals,
+  borderColor: c.accent,
+  backgroundColor: hexToRgba(c.accent, 0.15),
+  borderWidth: 2.5,
+  pointRadius: 4,
+  pointBackgroundColor: c.accent,
+  fill: true,
+  tension: 0.4,
+  }]
+  },
+  options: {
+  ...baseOptions,
+  animation: {
+  duration: 800,
+  easing: 'easeInOutQuart'
+  }
+  }
   });
 
   // ── Weekly Chart
