@@ -2210,8 +2210,10 @@ async function importData(e) {
 
     const data = JSON.parse(text);
 
-    if (!data.records ||
-        !Array.isArray(data.records)) {
+    if (
+      !data.records ||
+      !Array.isArray(data.records)
+    ) {
 
       return toast(
         'Invalid backup file.',
@@ -2222,8 +2224,45 @@ async function importData(e) {
 
     let added = 0;
 
+    let skipped = 0;
+
     for (const r of data.records) {
 
+      // Check existing record
+      const q = firebaseFns.query(
+
+        firebaseFns.collection(
+          db,
+          "records"
+        ),
+
+        firebaseFns.where(
+          "userId",
+          "==",
+          currentUser.uid
+        ),
+
+        firebaseFns.where(
+          "date",
+          "==",
+          r.date
+        )
+
+      );
+
+      const snapshot =
+        await firebaseFns.getDocs(q);
+
+      // Skip duplicate
+      if (!snapshot.empty) {
+
+        skipped++;
+
+        continue;
+
+      }
+
+      // Add new record
       await firebaseFns.addDoc(
 
         firebaseFns.collection(
@@ -2247,8 +2286,11 @@ async function importData(e) {
     }
 
     toast(
-      `Imported ${added} records.`,
+
+      `Imported ${added} records • Skipped ${skipped} duplicates`,
+
       'success'
+
     );
 
     renderDashboard();
@@ -2256,6 +2298,8 @@ async function importData(e) {
     renderHistory();
 
   } catch(err) {
+
+    console.error(err);
 
     toast(
       'Import failed: ' + err.message,
@@ -2267,7 +2311,6 @@ async function importData(e) {
   e.target.value = '';
 
 }
-
 /* ══════════════════════════════════════════════════════
    TOAST
 ══════════════════════════════════════════════════════ */
