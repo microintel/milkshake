@@ -867,13 +867,85 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   background: var(--bg);  
   color: var(--text);
 }
+
+#loading-screen{
+  position:fixed;
+  inset:0;
+  background:var(--bg);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:99999;
+}
+
+.loader-box{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:18px;
+}
+
+.loader-logo{
+  width:70px;
+  height:70px;
+  border-radius:20px;
+  background:var(--accent);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-size:32px;
+  animation:pulse 1s infinite ease-in-out;
+}
+
+.loader-text{
+  font-size:15px;
+  color:var(--text2);
+  font-weight:600;
+}
+
+@keyframes pulse{
+  0%{
+    transform:scale(1);
+    opacity:1;
+  }
+  50%{
+    transform:scale(1.08);
+    opacity:.7;
+  }
+  100%{
+    transform:scale(1);
+    opacity:1;
+  }
+}
+
+.app-footer{
+  width:100%;
+  text-align:center;
+  padding:30px 10px 90px;
+  font-size:13px;
+  color:var(--text3);
+}
+
+.app-footer span{
+  color:var(--accent);
+  font-weight:700;
+}
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 <body>
 
+<!-- Loading Screen -->
+<div id="loading-screen">
+  <div class="loader-box">
+    <div class="loader-logo">✿</div>
+    <div class="loader-text">NKN MilkShake...</div>
+  </div>
+</div>
+
 <!-- ─── AUTH SCREEN ─── -->
-<div id="auth-screen">
+<div id="auth-screen" style="display:none;">
   <div class="auth-box">
     <div class="auth-logo">
       <div class="logo-icon">✿</div>
@@ -887,7 +959,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
     <!-- Login Form -->
     <div id="form-login" class="auth-form">
       <div class="form-group">
-        <label>Username</label>
+        <label>Email ID</label>
         <input class="form-input" type="text" id="login-user" placeholder="Enter username" autocomplete="username"/>
       </div>
       <div class="form-group">
@@ -899,7 +971,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
     <!-- Register Form -->
     <div id="form-register" class="auth-form" style="display:none">
       <div class="form-group">
-        <label>Username</label>
+        <label>Email ID</label>
         <input class="form-input" type="text" id="reg-user" placeholder="Choose a username" autocomplete="username"/>
       </div>
       <div class="form-group">
@@ -916,7 +988,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 </div>
 
 <!-- ─── APP ─── -->
-<div id="app">
+<div id="app" style="display:none;">
   <!-- Topnav -->
   <nav class="topnav">
     <div class="topnav-left">
@@ -946,23 +1018,26 @@ textarea.form-input { resize: vertical; min-height: 80px; }
     <nav class="sidebar-nav">
       <div class="sidebar-section-title">Main</div>
       <button class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
-        <span class="ni-icon"><i class="bi bi-star-fill"></i></span> Dashboard
+        <span class="ni-icon"><i class="bi bi-house"></i></span> Dashboard
       </button>
       <button class="nav-item" data-page="add" onclick="navigateTo('add')">
-        <span class="ni-icon">➕</span> Add Record
+        <span class="ni-icon"><i class="bi bi-plus-circle"></i></span> Add Record
       </button>
       <button class="nav-item" data-page="history" onclick="navigateTo('history')">
-        <span class="ni-icon"><i class="bi bi-star-fill"></i></span> History
+        <span class="ni-icon"><i class="bi bi-clock-history"></i></span> History
       </button>
       <button class="nav-item" data-page="calendar" onclick="navigateTo('calendar')">
-        <span class="ni-icon">📅</span> Calendar
+        <span class="ni-icon"><i class="bi bi-calendar"></i></span> Calendar
       </button>
       <div class="sidebar-section-title">Settings</div>
       <button class="nav-item" data-page="backup" onclick="navigateTo('backup')">
-        <span class="ni-icon">💾</span> Backup
+        <span class="ni-icon"><i class="bi bi-cloud"></i></span> Backup
       </button>
       <button class="nav-item" onclick="logout()">
-        <span class="ni-icon">🚪</span> Logout
+        <span class="ni-icon">⎋</span> Logout
+      </button>
+      <button class="nav-item" data-page="profile" onclick="navigateTo('profile')">
+      <span class="ni-icon"><i class="bi bi-person-circle"></i></span> Profile
       </button>
     </nav>
   </aside>
@@ -974,23 +1049,70 @@ textarea.form-input { resize: vertical; min-height: 80px; }
     <div class="page active" id="page-dashboard">
       <div class="page-header">
         <h1 class="page-title">Dashboard</h1>
-        <p class="page-sub">Your habit overview at a glance</p>
+        <p class="page-sub">NKN ✿ No Naughty Kings</p>
       </div>
       <div class="stats-grid" id="stats-grid"></div>
       <div class="charts-grid">
         <div class="chart-card full">
-          <div class="chart-title">📈 Daily Trend</div>
+          <div class="chart-title">Daily Trend</div>
           <div class="chart-wrap"><canvas id="chart-line"></canvas></div>
         </div>
         <div class="chart-card">
-          <div class="chart-title">📅 Weekly Average</div>
+          <div class="chart-title">Weekly Average</div>
           <div class="chart-wrap"><canvas id="chart-weekly"></canvas></div>
         </div>
         <div class="chart-card">
-          <div class="chart-title">🗓 Monthly Overview</div>
+          <div class="chart-title">Monthly Overview</div>
           <div class="chart-wrap"><canvas id="chart-monthly"></canvas></div>
         </div>
       </div>
+    </div>
+    
+    <!-- ── Profile Page ── -->
+    <div class="page" id="page-profile">
+    
+    <div class="page-header">
+    <h1 class="page-title">Profile</h1>
+    <p class="page-sub">Manage your account details</p>
+    </div>
+    
+    <div class="add-card">
+    
+    <div class="add-form">
+    
+    <div class="form-group">
+    <label>Email</label>
+    <input
+    class="form-input"
+    type="email"
+    id="profile-email"
+    placeholder="Email"
+    />
+    </div>
+    
+    <div class="form-group">
+    <label>New Password</label>
+    <input
+    class="form-input"
+    type="password"
+    id="profile-password"
+    placeholder="Leave blank if unchanged"
+    />
+    </div>
+    
+    <div class="btn-row">
+    <button
+    class="btn-primary"
+    onclick="updateProfileDetails()"
+    >
+    Update Profile
+    </button>
+    </div>
+    
+    </div>
+    
+    </div>
+    
     </div>
 
     <!-- ── Add Record Page ── -->
@@ -1098,6 +1220,10 @@ textarea.form-input { resize: vertical; min-height: 80px; }
         </div>
       </div>
     </div>
+    
+    <div class="app-footer">
+    ✿ Developed by <span><a href="https://microintel.github.io/microintel/v1/micropro.html" >MicroIntel</a></span> • Powered by Firebase
+    </div>
 
   </main>
 </div>
@@ -1119,25 +1245,30 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   <button class="bn-item" data-page="backup" onclick="navigateTo('backup')">
     <span class="bn-icon"><i class="bi bi-cloud"></i></span><span>Backup</span>
   </button>
+  <button class="bn-item" data-page="profile" onclick="navigateTo('profile')">
+  <span class="bn-icon"><i class="bi bi-person"></i></span><span>Profile</span>
+  </button>
 </nav>
+
 
 <!-- Toast container -->
 <div id="toast-container"></div>
 
 <!-- Modal container -->
 <div id="modal-container"></div>
-
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
-import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+ import {
+ getAuth,
+ createUserWithEmailAndPassword,
+ signInWithEmailAndPassword,
+ signOut,
+ onAuthStateChanged,
+ updateEmail,
+ updatePassword
+ }from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
   getFirestore,
@@ -1174,6 +1305,8 @@ window.firebaseFns = {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  updateEmail,
+  updatePassword,
   collection,
   addDoc,
   getDocs,
@@ -1268,6 +1401,64 @@ async function loginUser() {
   }
 
 }
+
+
+async function updateProfileDetails() {
+
+  const newEmail =
+    document.getElementById('profile-email')
+    .value
+    .trim();
+
+  const newPassword =
+    document.getElementById('profile-password')
+    .value
+    .trim();
+
+  try {
+
+    if (
+      newEmail &&
+      newEmail !== currentUser.email
+    ) {
+
+      await firebaseFns.updateEmail(
+        currentUser,
+        newEmail
+      );
+
+    }
+
+    if (newPassword.length >= 6) {
+
+      await firebaseFns.updatePassword(
+        currentUser,
+        newPassword
+      );
+
+    }
+
+    toast(
+      'Profile updated!',
+      'success'
+    );
+
+    document.getElementById('nav-username')
+      .textContent = newEmail || currentUser.email;
+
+    document.getElementById('profile-password')
+      .value = '';
+
+  } catch (e) {
+
+    toast(
+      e.message,
+      'error'
+    );
+
+  }
+
+}
 async function logout() {
 
   await firebaseFns.signOut(auth);
@@ -1284,11 +1475,19 @@ function checkSession() {
 
   firebaseFns.onAuthStateChanged(auth, (user) => {
 
+    document.getElementById('loading-screen').style.display = 'none';
+
     if (user) {
 
       currentUser = user;
 
       startApp();
+
+    } else {
+
+      document.getElementById('auth-screen').style.display = 'flex';
+
+      document.getElementById('app').style.display = 'none';
 
     }
 
@@ -1324,6 +1523,9 @@ function startApp() {
     .value = todayStr();
 
   navigateTo('dashboard');
+  
+  document.getElementById('profile-email')
+  .value = currentUser.email;
 
 }
 
@@ -1502,7 +1704,12 @@ async function editRecord(id) {
   const rec =
     records.find(r => r.id === id);
 
-  if (!rec) return;
+  if (!rec) {
+    return toast(
+      "Record not found",
+      "error"
+    );
+  }
 
   editingId = id;
 
@@ -1519,11 +1726,11 @@ async function editRecord(id) {
 
   document
     .querySelectorAll('.mood-btn')
-    .forEach(b => {
+    .forEach(btn => {
 
-      b.classList.toggle(
+      btn.classList.toggle(
         'selected',
-        b.dataset.mood === selectedMood
+        btn.dataset.mood === selectedMood
       );
 
     });
@@ -1543,39 +1750,41 @@ async function editRecord(id) {
 
 async function deleteRecord(id) {
 
-  showModal(
+  if (!confirm(
+    "Delete this record?"
+  )) return;
 
-    'Delete Record',
+  try {
 
-    'Are you sure you want to delete this record?',
+    await firebaseFns.deleteDoc(
 
-    async () => {
+      firebaseFns.doc(
+        db,
+        "records",
+        id
+      )
 
-      await firebaseFns.deleteDoc(
+    );
 
-        firebaseFns.doc(
-          db,
-          "records",
-          id
-        )
+    toast(
+      "Record deleted",
+      "success"
+    );
 
-      );
+    renderHistory();
 
-      toast(
-        'Record deleted.',
-        'success'
-      );
+    renderDashboard();
 
-      renderHistory();
+  } catch(e){
 
-      renderDashboard();
+    toast(
+      e.message,
+      "error"
+    );
 
-    }
-
-  );
+  }
 
 }
-
 async function getUserRecords() {
 
   const q = firebaseFns.query(
@@ -1630,8 +1839,8 @@ async function renderHistory() {
       <div class="record-note">${r.note || '<span style="color:var(--text3)">—</span>'}</div>
       <div class="mood-tag">${r.mood || ''}</div>
       <div class="record-actions">
-        <button class="btn-edit" onclick="editRecord(${r.id})">✏️ Edit</button>
-        <button class="btn-del" onclick="deleteRecord(${r.id})">🗑 Del</button>
+        <button class="btn-edit" onclick="editRecord('${r.id}')">✏️ Edit</button>
+        <button class="btn-del" onclick="deleteRecord('${r.id}')">🗑 Del</button>
       </div>
     </div>
   `).join('');
@@ -2113,10 +2322,47 @@ document.addEventListener('keydown', e => {
 /* ══════════════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════════════ */
-(async () => {
-  
-  await checkSession();
-})();
+firebaseFns.onAuthStateChanged(auth, (user) => {
+
+  const loading =
+    document.getElementById('loading-screen');
+
+  if (user) {
+
+    currentUser = user;
+
+    startApp();
+
+  } else {
+
+    document.getElementById('auth-screen')
+      .style.display = 'flex';
+
+    document.getElementById('app')
+      .style.display = 'none';
+
+  }
+
+  if (loading) {
+    loading.style.display = 'none';
+  }
+
+});
+
+
+
+</script>
+
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+
+  setTimeout(() => {
+
+    checkSession();
+
+  }, 500);
+
+});
 </script>
 </body>
 </html>
