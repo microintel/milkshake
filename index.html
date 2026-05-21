@@ -1127,6 +1127,65 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 <!-- Modal container -->
 <div id="modal-container"></div>
 
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  where,
+  deleteDoc,
+  doc,
+  updateDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+
+  apiKey: "PASTE_HERE",
+  authDomain: "PASTE_HERE",
+  projectId: "PASTE_HERE",
+  storageBucket: "PASTE_HERE",
+  messagingSenderId: "PASTE_HERE",
+  appId: "PASTE_HERE"
+
+};
+
+const app = initializeApp(firebaseConfig);
+
+window.auth = getAuth(app);
+window.db = getFirestore(app);
+
+window.firebaseFns = {
+
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  where,
+  deleteDoc,
+  doc,
+  updateDoc
+
+};
+
+</script>
+
 <script>
 /* ══════════════════════════════════════════════════════
    DATABASE
@@ -1242,51 +1301,83 @@ function showAuthError(msg) {
 }
 
 async function registerUser() {
-  const u = document.getElementById('reg-user').value.trim();
-  const p = document.getElementById('reg-pass').value;
-  const p2= document.getElementById('reg-pass2').value;
-  if (!u || !p) return showAuthError('Please fill all fields.');
-  if (p !== p2)  return showAuthError('Passwords do not match.');
-  if (p.length < 4) return showAuthError('Password must be at least 4 characters.');
+
+  const email = document.getElementById('reg-user').value.trim();
+
+  const password = document.getElementById('reg-pass').value;
+
   try {
-    const existing = await dbGetByIndex('users','username', u);
-    if (existing) return showAuthError('Username already taken.');
-    await dbAdd('users', { username: u, password: hashPassword(p), created: Date.now() });
-    toast('Account created! Please sign in.', 'success');
+
+    await firebaseFns.createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+
+    toast('Account created!', 'success');
+
     switchAuthTab('login');
-    document.getElementById('login-user').value = u;
-  } catch(e) { showAuthError('Error: ' + e.message); }
+
+  } catch (e) {
+
+    showAuthError(e.message);
+
+  }
+
 }
 
 async function loginUser() {
-  const u = document.getElementById('login-user').value.trim();
-  const p = document.getElementById('login-pass').value;
-  if (!u || !p) return showAuthError('Please enter credentials.');
+
+  const email = document.getElementById('login-user').value.trim();
+
+  const password = document.getElementById('login-pass').value;
+
   try {
-    const user = await dbGetByIndex('users','username', u);
-    if (!user || user.password !== hashPassword(p)) return showAuthError('Invalid username or password.');
-    currentUser = user;
-    localStorage.setItem('habitly_session', JSON.stringify({ userId: user.id, username: user.username }));
+
+    const result =
+      await firebaseFns.signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+    currentUser = result.user;
+
     startApp();
-  } catch(e) { showAuthError('Error: ' + e.message); }
-}
 
-function logout() {
-  localStorage.removeItem('habitly_session');
+  } catch (e) {
+
+    showAuthError(e.message);
+
+  }
+
+}
+async function logout() {
+
+  await firebaseFns.signOut(auth);
+
   currentUser = null;
+
   document.getElementById('app').style.display = 'none';
+
   document.getElementById('auth-screen').style.display = 'flex';
-  destroyCharts();
+
 }
 
-async function checkSession() {
-  const s = localStorage.getItem('habitly_session');
-  if (!s) return;
-  try {
-    const { userId } = JSON.parse(s);
-    const user = await dbGet('users', userId);
-    if (user) { currentUser = user; startApp(); }
-  } catch(e) { localStorage.removeItem('habitly_session'); }
+function checkSession() {
+
+  firebaseFns.onAuthStateChanged(auth, (user) => {
+
+    if (user) {
+
+      currentUser = user;
+
+      startApp();
+
+    }
+
+  });
+
 }
 
 function startApp() {
@@ -1377,7 +1468,20 @@ async function saveRecord() {
         await dbPut('records', { ...existing, count, note, mood: selectedMood, updated: Date.now() });
         toast('Existing date updated.', 'success');
       } else {
-        await dbAdd('records', { userId: currentUser.id, date, count, note, mood: selectedMood, created: Date.now() });
+        await firebaseFns.addDoc(
+        
+        firebaseFns.collection(db, "records"),
+        
+        {
+        userId: currentUser.uid,
+        date,
+        count,
+        note,
+        mood: selectedMood,
+        created: Date.now()
+        }
+        
+        );
         toast('Record saved!', 'success');
       }
     }
@@ -1432,7 +1536,27 @@ async function deleteRecord(id) {
 }
 
 async function getUserRecords() {
-  return dbGetAllByIndex('records', 'userId', currentUser.id);
+
+  const q = firebaseFns.query(
+
+    firebaseFns.collection(db, "records"),
+
+    firebaseFns.where(
+      "userId",
+      "==",
+      currentUser.uid
+    )
+
+  );
+
+  const snapshot =
+    await firebaseFns.getDocs(q);
+
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+
 }
 
 /* ══════════════════════════════════════════════════════
