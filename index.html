@@ -931,6 +931,25 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   color:var(--accent);
   font-weight:700;
 }
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 6px;
+  color: var(--text3);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
@@ -984,6 +1003,14 @@ textarea.form-input { resize: vertical; min-height: 80px; }
       </div>
       <button class="btn-primary" onclick="registerUser()">Create Account →</button>
     </div>
+
+    <div class="auth-divider">
+  <span>or</span>
+</div>
+
+<button class="btn-secondary" style="width:100%" onclick="loginWithGoogle()">
+  <i class="bi bi-google"></i> Continue with Google
+</button>
   </div>
 </div>
 
@@ -1261,15 +1288,16 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
  import {
- getAuth,
- createUserWithEmailAndPassword,
- signInWithEmailAndPassword,
- signOut,
- onAuthStateChanged,
- updateEmail,
- updatePassword
- }from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  updateEmail,
+  updatePassword,
+  GoogleAuthProvider,
+  signInWithPopup
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore,
   collection,
@@ -1298,9 +1326,12 @@ const app = initializeApp(firebaseConfig);
 
 window.auth = getAuth(app);
 window.db = getFirestore(app);
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+  prompt: "select_account"
+});
 
 window.firebaseFns = {
-
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
@@ -1314,8 +1345,10 @@ window.firebaseFns = {
   where,
   deleteDoc,
   doc,
-  updateDoc
-
+  updateDoc,
+  GoogleAuthProvider,
+  signInWithPopup,
+  googleProvider
 };
 
 </script>
@@ -1402,7 +1435,15 @@ async function loginUser() {
 
 }
 
-
+async function loginWithGoogle() {
+  try {
+    const result = await firebaseFns.signInWithPopup(auth, firebaseFns.googleProvider);
+    currentUser = result.user;
+    startApp();
+  } catch (e) {
+    showAuthError(e.message);
+  }
+}
 async function updateProfileDetails() {
 
   const newEmail =
