@@ -1188,92 +1188,7 @@ window.firebaseFns = {
 </script>
 
 <script>
-/* ══════════════════════════════════════════════════════
-   DATABASE
-══════════════════════════════════════════════════════ */
-let db;
-const DB_NAME = 'habitly_db';
-const DB_VER  = 1;
 
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VER);
-    req.onupgradeneeded = e => {
-      const d = e.target.result;
-      if (!d.objectStoreNames.contains('users')) {
-        const us = d.createObjectStore('users', { keyPath: 'id', autoIncrement: true });
-        us.createIndex('username', 'username', { unique: true });
-      }
-      if (!d.objectStoreNames.contains('records')) {
-        const rs = d.createObjectStore('records', { keyPath: 'id', autoIncrement: true });
-        rs.createIndex('userId_date', ['userId','date'], { unique: true });
-        rs.createIndex('userId', 'userId', { unique: false });
-      }
-      if (!d.objectStoreNames.contains('settings')) {
-        d.createObjectStore('settings', { keyPath: 'key' });
-      }
-    };
-    req.onsuccess = e => { db = e.target.result; resolve(db); };
-    req.onerror   = e => reject(e.target.error);
-  });
-}
-
-function dbGet(store, key) {
-  return new Promise((res, rej) => {
-    const tx = db.transaction(store, 'readonly');
-    const req = tx.objectStore(store).get(key);
-    req.onsuccess = () => res(req.result);
-    req.onerror   = e => rej(e.target.error);
-  });
-}
-function dbGetByIndex(store, idx, val) {
-  return new Promise((res, rej) => {
-    const tx = db.transaction(store, 'readonly');
-    const req = tx.objectStore(store).index(idx).get(val);
-    req.onsuccess = () => res(req.result);
-    req.onerror   = e => rej(e.target.error);
-  });
-}
-function dbGetAllByIndex(store, idx, val) {
-  return new Promise((res, rej) => {
-    const tx = db.transaction(store, 'readonly');
-    const req = tx.objectStore(store).index(idx).getAll(val);
-    req.onsuccess = () => res(req.result || []);
-    req.onerror   = e => rej(e.target.error);
-  });
-}
-function dbPut(store, obj) {
-  return new Promise((res, rej) => {
-    const tx = db.transaction(store, 'readwrite');
-    const req = tx.objectStore(store).put(obj);
-    req.onsuccess = () => res(req.result);
-    req.onerror   = e => rej(e.target.error);
-  });
-}
-function dbAdd(store, obj) {
-  return new Promise((res, rej) => {
-    const tx = db.transaction(store, 'readwrite');
-    const req = tx.objectStore(store).add(obj);
-    req.onsuccess = () => res(req.result);
-    req.onerror   = e => rej(e.target.error);
-  });
-}
-function dbDelete(store, key) {
-  return new Promise((res, rej) => {
-    const tx = db.transaction(store, 'readwrite');
-    const req = tx.objectStore(store).delete(key);
-    req.onsuccess = () => res();
-    req.onerror   = e => rej(e.target.error);
-  });
-}
-function dbGetAll(store) {
-  return new Promise((res, rej) => {
-    const tx = db.transaction(store, 'readonly');
-    const req = tx.objectStore(store).getAll();
-    req.onsuccess = () => res(req.result || []);
-    req.onerror   = e => rej(e.target.error);
-  });
-}
 
 /* ══════════════════════════════════════════════════════
    AUTH
@@ -1382,17 +1297,34 @@ function checkSession() {
 }
 
 function startApp() {
-  document.getElementById('auth-screen').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  document.getElementById('nav-username').textContent = currentUser.username;
-  document.getElementById('nav-avatar').textContent = currentUser.username[0].toUpperCase();
-  // theme
-  const saved = localStorage.getItem('habitly_theme') || 'dark';
+
+  document.getElementById('auth-screen')
+    .style.display = 'none';
+
+  document.getElementById('app')
+    .style.display = 'block';
+
+  document.getElementById('nav-username')
+    .textContent = currentUser.email;
+
+  document.getElementById('nav-avatar')
+    .textContent =
+      currentUser.email[0].toUpperCase();
+
+  const saved =
+    localStorage.getItem('habitly_theme')
+    || 'dark';
+
   setTheme(saved, false);
-  document.getElementById('theme-select-top').value = saved;
-  // default date
-  document.getElementById('rec-date').value = todayStr();
+
+  document.getElementById('theme-select-top')
+    .value = saved;
+
+  document.getElementById('rec-date')
+    .value = todayStr();
+
   navigateTo('dashboard');
+
 }
 
 /* ══════════════════════════════════════════════════════
@@ -1448,47 +1380,102 @@ function selectMood(btn) {
 }
 
 async function saveRecord() {
-  const date  = document.getElementById('rec-date').value;
-  const count = parseInt(document.getElementById('rec-count').value);
-  const note  = document.getElementById('rec-note').value.trim();
-  if (!date) return toast('Please select a date.', 'warn');
-  if (isNaN(count) || count < 0) return toast('Please enter a valid count.', 'warn');
+
+  const date =
+    document.getElementById('rec-date').value;
+
+  const count =
+    parseInt(
+      document.getElementById('rec-count').value
+    );
+
+  const note =
+    document.getElementById('rec-note')
+    .value.trim();
+
+  if (!date)
+    return toast(
+      'Please select a date.',
+      'warn'
+    );
+
+  if (isNaN(count) || count < 0)
+    return toast(
+      'Please enter a valid count.',
+      'warn'
+    );
 
   try {
-    if (editingId !== null) {
-      // Update existing record
-      const rec = await dbGet('records', editingId);
-      await dbPut('records', { ...rec, date, count, note, mood: selectedMood, updated: Date.now() });
-      toast('Record updated!', 'success');
-      cancelEdit();
-    } else {
-      // Check if date exists for this user
-      const existing = await dbGetByIndex('records', 'userId_date', [currentUser.id, date]);
-      if (existing) {
-        // Update instead of duplicate
-        await dbPut('records', { ...existing, count, note, mood: selectedMood, updated: Date.now() });
-        toast('Existing date updated.', 'success');
-      } else {
-        await firebaseFns.addDoc(
-        
-        firebaseFns.collection(db, "records"),
-        
+
+    if (editingId) {
+
+      await firebaseFns.updateDoc(
+
+        firebaseFns.doc(
+          db,
+          "records",
+          editingId
+        ),
+
         {
-        userId: currentUser.uid,
-        date,
-        count,
-        note,
-        mood: selectedMood,
-        created: Date.now()
+          date,
+          count,
+          note,
+          mood: selectedMood,
+          updated: Date.now()
         }
-        
-        );
-        toast('Record saved!', 'success');
-      }
+
+      );
+
+      toast(
+        'Record updated!',
+        'success'
+      );
+
+      cancelEdit();
+
+    } else {
+
+      await firebaseFns.addDoc(
+
+        firebaseFns.collection(
+          db,
+          "records"
+        ),
+
+        {
+          userId: currentUser.uid,
+          date,
+          count,
+          note,
+          mood: selectedMood,
+          created: Date.now()
+        }
+
+      );
+
+      toast(
+        'Record saved!',
+        'success'
+      );
+
     }
+
     resetForm();
+
     renderDashboard();
-  } catch(e) { toast('Error: ' + e.message, 'error'); }
+
+    renderHistory();
+
+  } catch(e) {
+
+    toast(
+      'Error: ' + e.message,
+      'error'
+    );
+
+  }
+
 }
 
 function resetForm() {
@@ -1508,32 +1495,85 @@ function cancelEdit() {
 }
 
 async function editRecord(id) {
-  const rec = await dbGet('records', id);
+
+  const records =
+    await getUserRecords();
+
+  const rec =
+    records.find(r => r.id === id);
+
+  if (!rec) return;
+
   editingId = id;
-  document.getElementById('rec-date').value  = rec.date;
-  document.getElementById('rec-count').value = rec.count;
-  document.getElementById('rec-note').value  = rec.note || '';
+
+  document.getElementById('rec-date')
+    .value = rec.date;
+
+  document.getElementById('rec-count')
+    .value = rec.count;
+
+  document.getElementById('rec-note')
+    .value = rec.note || '';
+
   selectedMood = rec.mood || '';
-  document.querySelectorAll('.mood-btn').forEach(b => {
-    b.classList.toggle('selected', b.dataset.mood === selectedMood);
-  });
-  document.getElementById('add-page-title').textContent = 'Edit Record';
-  document.getElementById('save-btn').textContent = 'Update Record';
-  document.getElementById('cancel-btn').style.display = 'block';
+
+  document
+    .querySelectorAll('.mood-btn')
+    .forEach(b => {
+
+      b.classList.toggle(
+        'selected',
+        b.dataset.mood === selectedMood
+      );
+
+    });
+
+  document.getElementById('add-page-title')
+    .textContent = 'Edit Record';
+
+  document.getElementById('save-btn')
+    .textContent = 'Update Record';
+
+  document.getElementById('cancel-btn')
+    .style.display = 'block';
+
   navigateTo('add');
+
 }
 
 async function deleteRecord(id) {
+
   showModal(
+
     'Delete Record',
-    'Are you sure you want to delete this record? This action cannot be undone.',
+
+    'Are you sure you want to delete this record?',
+
     async () => {
-      await dbDelete('records', id);
-      toast('Record deleted.', 'success');
+
+      await firebaseFns.deleteDoc(
+
+        firebaseFns.doc(
+          db,
+          "records",
+          id
+        )
+
+      );
+
+      toast(
+        'Record deleted.',
+        'success'
+      );
+
       renderHistory();
+
       renderDashboard();
+
     }
+
   );
+
 }
 
 async function getUserRecords() {
@@ -1950,23 +1990,73 @@ async function exportData() {
 }
 
 async function importData(e) {
+
   const file = e.target.files[0];
+
   if (!file) return;
+
   try {
+
     const text = await file.text();
+
     const data = JSON.parse(text);
-    if (!data.records || !Array.isArray(data.records)) return toast('Invalid backup file.', 'error');
-    let added = 0, skipped = 0;
-    for (const r of data.records) {
-      const existing = await dbGetByIndex('records','userId_date',[currentUser.id, r.date]);
-      if (existing) { skipped++; continue; }
-      await dbAdd('records', { userId: currentUser.id, date: r.date, count: r.count, note: r.note||'', mood: r.mood||'', created: Date.now() });
-      added++;
+
+    if (!data.records ||
+        !Array.isArray(data.records)) {
+
+      return toast(
+        'Invalid backup file.',
+        'error'
+      );
+
     }
-    toast(`Imported ${added} records. ${skipped} duplicates skipped.`, 'success');
+
+    let added = 0;
+
+    for (const r of data.records) {
+
+      await firebaseFns.addDoc(
+
+        firebaseFns.collection(
+          db,
+          "records"
+        ),
+
+        {
+          userId: currentUser.uid,
+          date: r.date,
+          count: r.count,
+          note: r.note || '',
+          mood: r.mood || '',
+          created: Date.now()
+        }
+
+      );
+
+      added++;
+
+    }
+
+    toast(
+      `Imported ${added} records.`,
+      'success'
+    );
+
     renderDashboard();
-  } catch(err) { toast('Import failed: ' + err.message, 'error'); }
+
+    renderHistory();
+
+  } catch(err) {
+
+    toast(
+      'Import failed: ' + err.message,
+      'error'
+    );
+
+  }
+
   e.target.value = '';
+
 }
 
 /* ══════════════════════════════════════════════════════
@@ -2024,7 +2114,7 @@ document.addEventListener('keydown', e => {
    INIT
 ══════════════════════════════════════════════════════ */
 (async () => {
-  await openDB();
+  
   await checkSession();
 })();
 </script>
